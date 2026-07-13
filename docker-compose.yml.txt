@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # ============================================================
+  # NGINX - Servidor Web
+  # ============================================================
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_dev
+    ports:
+      - "8080:80"  # Acessa em http://localhost:8080
+    volumes:
+      - ./www:/var/www/html           # Código PHP
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf  # Configuração
+    depends_on:
+      - phpfpm
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  # ============================================================
+  # PHP-FPM - Processador PHP
+  # ============================================================
+  phpfpm:
+    image: php:8.2-fpm
+    container_name: phpfpm_dev
+    volumes:
+      - ./www:/var/www/html  # Mesmo volume do Nginx
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  # ============================================================
+  # MariaDB - Banco de Dados
+  # ============================================================
+  mariadb:
+    image: mariadb:10.11
+    container_name: mariadb_dev
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: dev_database
+      MYSQL_USER: dev_user
+      MYSQL_PASSWORD: dev_password
+    ports:
+      - "3306:3306"  # Acesso externo (opcional)
+    volumes:
+      - mariadb_data:/var/lib/mysql  # Volume persistente!
+    networks:
+      - app_network
+    restart: unless-stopped
+
+# ============================================================
+# VOLUMES - Persistência de dados
+# ============================================================
+volumes:
+  mariadb_data:
+    driver: local
+    # Os dados do MariaDB persistem aqui mesmo se o container for removido
+
+# ============================================================
+# REDES - Isolamento entre serviços
+# ============================================================
+networks:
+  app_network:
+    driver: bridge
